@@ -7,6 +7,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 
 
 // DatabaseHelper focuses on database setup and operation
@@ -192,5 +193,29 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         );
 
         return rowsDeleted > 0;
+    }
+
+    // returns inventory records as an arraylist
+    // supports searching, sorting, and filtering logic in MainActivity
+    public ArrayList<InventoryItem> getInventoryItemList() {
+        ArrayList<InventoryItem> inventoryList = new ArrayList<>();
+
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        Cursor cursor = db.rawQuery("SELECT * FROM " + inventoryTable, null);
+
+        if (cursor.moveToFirst()) {
+            do {
+                String itemName = cursor.getString(cursor.getColumnIndexOrThrow(itemNameColumn));
+                int quantity = cursor.getInt(cursor.getColumnIndexOrThrow(quantityColumn));
+
+                inventoryList.add(new InventoryItem(itemName, quantity));
+
+            } while (cursor.moveToNext());
+        }
+
+        cursor.close();
+
+        return inventoryList;
     }
 }

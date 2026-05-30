@@ -3,38 +3,36 @@ package com.example.cs360project2;
 
 
 import android.content.Context;
-import android.database.Cursor;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 import android.widget.BaseAdapter;
 
+// removed inventory cursor. changed to arraylist
+import java.util.ArrayList;
+
 public class InventoryAdapter extends BaseAdapter {
 
-    // uses a cursor to read inventory data from database
-    // displays them in gridview on inventory screen
+    // adapter changed to arraylist instead of cursor
+    // supports search, sort, and filter functionality
     private Context context;
-    private Cursor cursor;
+    private ArrayList<InventoryItem> inventoryItems;
 
-
-    // stores context and cursor for displaying inventory data
-    public InventoryAdapter(Context context, Cursor cursor) {
+    public InventoryAdapter(Context context, ArrayList<InventoryItem> inventoryItems) {
         this.context = context;
-        this.cursor = cursor;
+        this.inventoryItems = inventoryItems;
     }
 
-    // tells gridview how many items to display based
-    // on number of total records in inventory database
+    // tells gridview how many filtered or sorted items to display
     @Override
     public int getCount() {
-        return cursor.getCount();
+        return inventoryItems.size();
     }
 
     @Override
     public Object getItem(int position) {
-        cursor.moveToPosition(position);
-        return cursor;
+        return inventoryItems.get(position);
     }
 
     @Override
@@ -45,7 +43,7 @@ public class InventoryAdapter extends BaseAdapter {
     // creates a grid item view for each record in the inventory database
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
-        cursor.moveToPosition(position);
+        InventoryItem currentItem = inventoryItems.get(position);
 
         // reuses existing view if available
         // inflates new view if no reusable view is available
@@ -55,10 +53,9 @@ public class InventoryAdapter extends BaseAdapter {
 
         TextView itemName = convertView.findViewById(R.id.itemName);
         TextView itemQuantity = convertView.findViewById(R.id.itemQuantity);
-        
-        // pulls item name and quantity from cursor position and displays them in the grid item view
-        itemName.setText(cursor.getString(cursor.getColumnIndexOrThrow("itemName")));
-        itemQuantity.setText(String.valueOf(cursor.getInt(cursor.getColumnIndexOrThrow("quantity"))));
+
+        itemName.setText(currentItem.getItemName());
+        itemQuantity.setText(String.valueOf(currentItem.getQuantity()));
 
         return convertView;
     }
