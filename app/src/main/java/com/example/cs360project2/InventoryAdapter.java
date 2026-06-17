@@ -45,17 +45,19 @@ public class InventoryAdapter extends BaseAdapter {
     public View getView(int position, View convertView, ViewGroup parent) {
         InventoryItem currentItem = inventoryItems.get(position);
 
-        // reuses existing view if available
-        // inflates new view if no reusable view is available
         if (convertView == null) {
             convertView = LayoutInflater.from(context).inflate(R.layout.grid_item, parent, false);
         }
 
         TextView itemName = convertView.findViewById(R.id.itemName);
         TextView itemQuantity = convertView.findViewById(R.id.itemQuantity);
+        TextView itemCategory = convertView.findViewById(R.id.itemCategory);
+        TextView lowStockLimit = convertView.findViewById(R.id.lowStockLimit);
 
         itemName.setText(currentItem.getItemName());
-        itemQuantity.setText(String.valueOf(currentItem.getQuantity()));
+        itemQuantity.setText("Qty: " + currentItem.getQuantity());
+        itemCategory.setText(currentItem.getCategory());
+        lowStockLimit.setText("Low Stock: " + currentItem.getLowStockLimit());
 
         return convertView;
     }

@@ -6,21 +6,14 @@
     android:layout_height="match_parent"
     android:gravity="center_horizontal"
     android:orientation="vertical"
-    android:padding="16dp"
-    android:visibility="visible">
+    android:padding="16dp">
 
-    <!-- Added for algorithms and data structures enhancement -->
-    <!-- Allows user to search inventory items by name -->
-
-    <!-- Added controls for search, sort, filter, and reset functionality -->
-
+    <!-- Search, sort, and low-stock controls -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:visibility="visible">
+        android:layout_marginTop="8dp">
 
-        <!-- Switch toggles between showing all items and low-stock items -->
         <Switch
             android:id="@+id/lowStockSwitch"
             android:layout_width="wrap_content"
@@ -30,7 +23,6 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <!-- Dropdown menu for sorting inventory items -->
         <Spinner
             android:id="@+id/sortSpinner"
             android:layout_width="180dp"
@@ -38,7 +30,6 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <!-- Search field for filtering inventory items by name -->
         <EditText
             android:id="@+id/searchField"
             android:layout_width="0dp"
@@ -50,7 +41,6 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/lowStockSwitch" />
 
-        <!-- Search button runs the search algorithm -->
         <Button
             android:id="@+id/searchButton"
             android:layout_width="96dp"
@@ -62,135 +52,209 @@
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <LinearLayout
+    <TextView
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:visibility="visible">
+        android:layout_height="wrap_content"
+        android:padding="8dp"
+        android:text="INVENTORY"
+        android:textAppearance="@style/TextAppearance.AppCompat.Body2"
+        android:textSize="16sp"
+        android:textStyle="bold" />
 
-        <TextView
-            android:layout_width="377dp"
-            android:layout_height="wrap_content"
-            android:padding="8dp"
-            android:text="Inventory Item"
-            android:textStyle="bold" />
+    <GridView
+        android:id="@+id/gridView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:baselineAligned="false"
+        android:columnWidth="0dp"
+        android:gravity="center"
+        android:horizontalSpacing="10dp"
+        android:numColumns="1"
+        android:stretchMode="columnWidth"
+        android:verticalSpacing="10dp" />
 
-        <GridView
-            android:id="@+id/gridView"
+    <!-- Top-level menu buttons -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/actionButtonLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <Button
+            android:id="@+id/updateDataButton"
             android:layout_width="wrap_content"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:baselineAligned="false"
-            android:columnWidth="0dp"
-            android:gravity="center"
-            android:horizontalSpacing="10dp"
-            android:numColumns="1"
-            android:stretchMode="columnWidth"
-            android:verticalSpacing="10dp">
-
-        </GridView>
-
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/linearLayout"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-
-            <Button
-                android:id="@+id/addDataButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="5dp"
-                android:layout_marginBottom="5dp"
-                android:text="Modify"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-        </androidx.constraintlayout.widget.ConstraintLayout>
-
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/dataEntryForm"
-            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:visibility="gone">
+            android:text="Update"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/newItemButton"
+            app:layout_constraintHorizontal_chainStyle="spread"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
-            <EditText
-                android:id="@+id/itemName"
-                android:layout_width="250dp"
-                android:layout_height="50dp"
-                android:layout_marginTop="4dp"
-                android:hint="Item Name"
-                android:padding="8dp"
-                android:visibility="visible"
-                app:layout_constraintEnd_toEndOf="@+id/itemQuantity"
-                app:layout_constraintHorizontal_bias="0.0"
-                app:layout_constraintStart_toStartOf="@+id/itemQuantity"
-                app:layout_constraintTop_toTopOf="parent" />
+        <Button
+            android:id="@+id/newItemButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="New"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/updateDataButton"
+            app:layout_constraintTop_toTopOf="parent" />
 
-            <EditText
-                android:id="@+id/itemQuantity"
-                android:layout_width="250dp"
-                android:layout_height="50dp"
-                android:layout_marginTop="2dp"
-                android:hint="Quantity"
-                android:inputType="number"
-                android:padding="8dp"
-                android:visibility="visible"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/itemName" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
-            <Button
-                android:id="@+id/saveDataButton"
-                android:layout_width="120dp"
-                android:layout_height="49dp"
-                android:layout_marginTop="8dp"
-                android:layout_marginBottom="8dp"
-                android:text="Save ✔"
-                android:visibility="visible"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toStartOf="@+id/decreaseQuantityButton"
-                app:layout_constraintTop_toBottomOf="@+id/increaseQuantityButton"
-                app:layout_constraintVertical_bias="0.0" />
+    <!-- Add new item form -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/addItemForm"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:visibility="gone">
 
-            <Button
-                android:id="@+id/increaseQuantityButton"
-                android:layout_width="120dp"
-                android:layout_height="49dp"
-                android:layout_marginTop="8dp"
-                android:text="+ 1"
-                android:visibility="visible"
-                app:layout_constraintEnd_toEndOf="@+id/itemQuantity"
-                app:layout_constraintTop_toBottomOf="@+id/itemQuantity" />
+        <EditText
+            android:id="@+id/addItemName"
+            android:layout_width="150dp"
+            android:layout_height="48dp"
+            android:hint="Item Name"
+            android:padding="8dp"
+            app:layout_constraintEnd_toStartOf="@+id/addCategory"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
-            <Button
-                android:id="@+id/decreaseQuantityButton"
-                android:layout_width="120dp"
-                android:layout_height="49dp"
-                android:layout_marginTop="8dp"
-                android:text="- 1"
-                android:visibility="visible"
-                app:layout_constraintStart_toStartOf="@+id/itemQuantity"
-                app:layout_constraintTop_toBottomOf="@+id/itemQuantity" />
+        <EditText
+            android:id="@+id/addCategory"
+            android:layout_width="150dp"
+            android:layout_height="48dp"
+            android:hint="Category"
+            android:padding="8dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/addItemName"
+            app:layout_constraintTop_toTopOf="parent" />
 
-            <Button
-                android:id="@+id/deleteItemButton"
-                android:layout_width="120dp"
-                android:layout_height="49dp"
-                android:layout_marginStart="16dp"
-                android:layout_marginTop="8dp"
-                android:layout_marginBottom="8dp"
-                android:text="Delete ╳"
-                android:visibility="visible"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="@+id/increaseQuantityButton"
-                app:layout_constraintStart_toEndOf="@+id/saveDataButton"
-                app:layout_constraintTop_toBottomOf="@+id/decreaseQuantityButton"
-                app:layout_constraintVertical_bias="0.0" />
+        <EditText
+            android:id="@+id/addQuantity"
+            android:layout_width="150dp"
+            android:layout_height="48dp"
+            android:hint="Quantity"
+            android:inputType="number"
+            android:padding="8dp"
+            app:layout_constraintEnd_toStartOf="@+id/addLowStockLimit"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/addItemName" />
 
-        </androidx.constraintlayout.widget.ConstraintLayout>
+        <EditText
+            android:id="@+id/addLowStockLimit"
+            android:layout_width="150dp"
+            android:layout_height="48dp"
+            android:hint="Low Stock Limit"
+            android:inputType="number"
+            android:padding="8dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/addQuantity"
+            app:layout_constraintTop_toBottomOf="@+id/addCategory" />
 
-    </LinearLayout>
+        <Button
+            android:id="@+id/addItemSubmitButton"
+            android:layout_width="120dp"
+            android:layout_height="49dp"
+            android:layout_marginTop="8dp"
+            android:text="Add +"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/addQuantity" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- Update selected item form -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/updateItemForm"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:visibility="gone">
+
+        <EditText
+            android:id="@+id/updateItemName"
+            android:layout_width="150dp"
+            android:layout_height="48dp"
+            android:hint="Item Name"
+            android:padding="8dp"
+            app:layout_constraintEnd_toStartOf="@+id/updateCategory"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <EditText
+            android:id="@+id/updateCategory"
+            android:layout_width="150dp"
+            android:layout_height="48dp"
+            android:hint="Category"
+            android:padding="8dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/updateItemName"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <EditText
+            android:id="@+id/updateQuantity"
+            android:layout_width="150dp"
+            android:layout_height="48dp"
+            android:hint="Quantity"
+            android:inputType="number"
+            android:padding="8dp"
+            app:layout_constraintEnd_toStartOf="@+id/updateLowStockLimit"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/updateItemName" />
+
+        <EditText
+            android:id="@+id/updateLowStockLimit"
+            android:layout_width="150dp"
+            android:layout_height="48dp"
+            android:hint="Low Stock Limit"
+            android:inputType="number"
+            android:padding="8dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/updateQuantity"
+            app:layout_constraintTop_toBottomOf="@+id/updateCategory" />
+
+        <Button
+            android:id="@+id/decreaseQuantityButton"
+            android:layout_width="120dp"
+            android:layout_height="49dp"
+            android:layout_marginTop="8dp"
+            android:text="- 1"
+            app:layout_constraintEnd_toStartOf="@+id/increaseQuantityButton"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/updateQuantity" />
+
+        <Button
+            android:id="@+id/increaseQuantityButton"
+            android:layout_width="120dp"
+            android:layout_height="49dp"
+            android:layout_marginTop="8dp"
+            android:text="+ 1"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/decreaseQuantityButton"
+            app:layout_constraintTop_toBottomOf="@+id/updateLowStockLimit" />
+
+        <Button
+            android:id="@+id/updateItemSubmitButton"
+            android:layout_width="120dp"
+            android:layout_height="49dp"
+            android:layout_marginTop="8dp"
+            android:text="Confirm"
+            app:layout_constraintEnd_toStartOf="@+id/deleteItemButton"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/decreaseQuantityButton" />
+
+        <Button
+            android:id="@+id/deleteItemButton"
+            android:layout_width="120dp"
+            android:layout_height="49dp"
+            android:layout_marginTop="8dp"
+            android:text="Delete ╳"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/updateItemSubmitButton"
+            app:layout_constraintTop_toBottomOf="@+id/increaseQuantityButton" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
 </LinearLayout>

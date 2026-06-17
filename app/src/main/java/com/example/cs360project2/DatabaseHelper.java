@@ -15,20 +15,26 @@ import java.util.ArrayList;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     // database name and version are saved as variables for easy management
+    // database version updated due to database structure changes
     private static final String databaseName = "AppDB";
-    private static final int databaseVersion = 1;
+    private static final int databaseVersion = 2;
 
     // table names saved to avoid repeating hardcoded strings
     private static final String usersTable = "Users";
     private static final String inventoryTable = "Inventory";
 
+    // inventory table columns (Updated for new inventory item fields)
+    private static final String itemIdColumn = "itemId";
+    private static final String itemNameColumn = "itemName";
+    private static final String quantityColumn = "quantity";
+    private static final String categoryColumn = "category";
+    private static final String lowStockLimitColumn = "lowStockLimit";
+    private static final String dateAddedColumn = "dateAdded";
+    private static final String lastUpdatedColumn = "lastUpdated";
+
     // column names are defined to make queries easier
     private static final String usernameColumn = "username";
     private static final String passwordColumn = "password";
-
-    // inventory table columns
-    private static final String itemNameColumn = "itemName";
-    private static final String quantityColumn = "quantity";
 
     // connects the helper class to the local SQLite database
     public DatabaseHelper(Context context) {
@@ -44,9 +50,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 passwordColumn + " TEXT);";
 
         // creates the inventory table for storage
+        // additonal fields added for new datbase structure
         String createInventoryTable = "CREATE TABLE IF NOT EXISTS " + inventoryTable + " (" +
-                itemNameColumn + " TEXT, " +
-                quantityColumn + " INTEGER);";
+                itemIdColumn + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                itemNameColumn + " TEXT UNIQUE, " +
+                quantityColumn + " INTEGER, " +
+                categoryColumn + " TEXT, " +
+                lowStockLimitColumn + " INTEGER, " +
+                dateAddedColumn + " TEXT, " +
+                lastUpdatedColumn + " TEXT);";
 
         db.execSQL(createUsersTable);
         db.execSQL(createInventoryTable);
@@ -134,14 +146,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return result != -1;
     }
 
-    // returns all inventory records so MainActivity can
-    // display them in gridview
-    public Cursor getAllInventoryItems() {
-        SQLiteDatabase db = this.getReadableDatabase();
-
-        return db.rawQuery("SELECT * FROM " + inventoryTable, null);
-    }
-
     // returns all inventory quantities for specific items and
     // supports increase and decrease quantity buttons
     public Integer getItemQuantity(String itemName) {
@@ -182,6 +186,25 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return rowsUpdated > 0;
     }
 
+    // updates item quantity by item ID
+    // also updates lastUpdated when quantity changes
+    public boolean updateInventoryQuantityById(int itemId, int quantity) {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        ContentValues values = new ContentValues();
+        values.put(quantityColumn, quantity);
+        values.put(lastUpdatedColumn, String.valueOf(System.currentTimeMillis()));
+
+        int rowsUpdated = db.update(
+                inventoryTable,
+                values,
+                itemIdColumn + " = ?",
+                new String[]{String.valueOf(itemId)}
+        );
+
+        return rowsUpdated > 0;
+    }
+
     // delete inventory item by name *TO BE CHANGED*
     public boolean deleteInventoryItem(String itemName) {
         SQLiteDatabase db = this.getWritableDatabase();
@@ -195,8 +218,80 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return rowsDeleted > 0;
     }
 
-    // returns inventory records as an arraylist
-    // supports searching, sorting, and filtering logic in MainActivity
+    // Adds a new inventory item with new item fields
+    // Item names must be unique
+    public boolean addInventoryItem(String itemName, int quantity, String category, int lowStockLimit) {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        String currentDate = String.valueOf(System.currentTimeMillis());
+
+        ContentValues values = new ContentValues();
+        values.put(itemNameColumn, itemName);
+        values.put(quantityColumn, quantity);
+        values.put(categoryColumn, category);
+        values.put(lowStockLimitColumn, lowStockLimit);
+        values.put(dateAddedColumn, currentDate);
+        values.put(lastUpdatedColumn, currentDate);
+
+        long result = db.insert(inventoryTable, null, values);
+
+        return result != -1;
+    }
+
+    // Updates an existing inventory item by itemId instead of item name.
+    public boolean updateInventoryItem(int itemId, String itemName, int quantity, String category, int lowStockLimit) {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        String currentDate = String.valueOf(System.currentTimeMillis());
+
+        ContentValues values = new ContentValues();
+        values.put(itemNameColumn, itemName);
+        values.put(quantityColumn, quantity);
+        values.put(categoryColumn, category);
+        values.put(lowStockLimitColumn, lowStockLimit);
+        values.put(lastUpdatedColumn, currentDate);
+
+        int rowsUpdated = db.update(
+                inventoryTable,
+                values,
+                itemIdColumn + " = ?",
+                new String[]{String.valueOf(itemId)}
+        );
+
+        return rowsUpdated > 0;
+    }
+
+    // Deletes an inventory item by itemId.
+    public boolean deleteInventoryItemById(int itemId) {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        int rowsDeleted = db.delete(
+                inventoryTable,
+                itemIdColumn + " = ?",
+                new String[]{String.valueOf(itemId)}
+        );
+
+        return rowsDeleted > 0;
+    }
+
+    // Checks if an item name already exists.
+    // This helps prevent duplicate item names before inserting.
+    public boolean itemNameExists(String itemName) {
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        Cursor cursor = db.rawQuery(
+                "SELECT " + itemIdColumn + " FROM " + inventoryTable +
+                        " WHERE " + itemNameColumn + " = ?",
+                new String[]{itemName}
+        );
+
+        boolean exists = cursor.moveToFirst();
+        cursor.close();
+
+        return exists;
+    }
+
+    // Gets inventory records as an ArrayList using the expanded database fields.
     public ArrayList<InventoryItem> getInventoryItemList() {
         ArrayList<InventoryItem> inventoryList = new ArrayList<>();
 
@@ -206,10 +301,23 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
         if (cursor.moveToFirst()) {
             do {
+                int itemId = cursor.getInt(cursor.getColumnIndexOrThrow(itemIdColumn));
                 String itemName = cursor.getString(cursor.getColumnIndexOrThrow(itemNameColumn));
                 int quantity = cursor.getInt(cursor.getColumnIndexOrThrow(quantityColumn));
+                String category = cursor.getString(cursor.getColumnIndexOrThrow(categoryColumn));
+                int lowStockLimit = cursor.getInt(cursor.getColumnIndexOrThrow(lowStockLimitColumn));
+                String dateAdded = cursor.getString(cursor.getColumnIndexOrThrow(dateAddedColumn));
+                String lastUpdated = cursor.getString(cursor.getColumnIndexOrThrow(lastUpdatedColumn));
 
-                inventoryList.add(new InventoryItem(itemName, quantity));
+                inventoryList.add(new InventoryItem(
+                        itemId,
+                        itemName,
+                        quantity,
+                        category,
+                        lowStockLimit,
+                        dateAdded,
+                        lastUpdated
+                ));
 
             } while (cursor.moveToNext());
         }
