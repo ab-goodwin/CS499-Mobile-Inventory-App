@@ -29,15 +29,10 @@ public class MainActivity extends AppCompatActivity {
 
     private static final int SMS_PERMISSION_CODE = 100;
 
-    // added a hardcoded low stock limit for filtering inventory items
-    // Possible Improvement: let the user change the value of low_stock_limit in application
-    private static final int LOW_STOCK_LIMIT = 5;
-
     // DatabaseHelper replaces direct SQLite database usage in MainActivity
     private DatabaseHelper databaseHelper;
 
     private GridView gridView;
-    private EditText itemName, itemQuantity;
 
     // added searchField for searching inventory by item name
     private EditText searchField;
@@ -47,7 +42,17 @@ public class MainActivity extends AppCompatActivity {
     private Spinner sortSpinner;
     private Switch lowStockSwitch;
 
-    private View dataEntryForm;
+    // separate forms for adding new items and updating selected items
+    private View addItemForm, updateItemForm;
+
+    // fields used only when adding a new inventory item
+    private EditText addItemName, addQuantity, addCategory, addLowStockLimit;
+
+    // fields used only when updating a selected inventory item
+    private EditText updateItemName, updateQuantity, updateCategory, updateLowStockLimit;
+
+    // stores the selected database item ID for update and delete operations
+    private int selectedItemId = -1;
 
     // added ArrayLists as part of the algorithms and data structures enhancement
     // inventoryItems stores the full inventory list from the database
@@ -66,20 +71,58 @@ public class MainActivity extends AppCompatActivity {
 
         // connects inventory screen elements to variables
         gridView = findViewById(R.id.gridView);
-        Button addDataButton = findViewById(R.id.addDataButton);
-        dataEntryForm = findViewById(R.id.dataEntryForm);
-        itemName = findViewById(R.id.itemName);
-        itemQuantity = findViewById(R.id.itemQuantity);
+
+        // connects separate add and update forms to MainActivity
+        addItemForm = findViewById(R.id.addItemForm);
+        updateItemForm = findViewById(R.id.updateItemForm);
+
+        // connects fields for adding a new item
+        addItemName = findViewById(R.id.addItemName);
+        addQuantity = findViewById(R.id.addQuantity);
+        addCategory = findViewById(R.id.addCategory);
+        addLowStockLimit = findViewById(R.id.addLowStockLimit);
+
+        // connects fields for updating a selected item
+        updateItemName = findViewById(R.id.updateItemName);
+        updateQuantity = findViewById(R.id.updateQuantity);
+        updateCategory = findViewById(R.id.updateCategory);
+        updateLowStockLimit = findViewById(R.id.updateLowStockLimit);
+
+        // New button opens the add form
+        // Update button opens the update form for the selected item
+        Button newItemButton = findViewById(R.id.newItemButton);
+        Button updateDataButton = findViewById(R.id.updateDataButton);
+
+        newItemButton.setOnClickListener(view -> toggleAddItemForm());
+        updateDataButton.setOnClickListener(view -> toggleUpdateItemForm());
+
+        // Add button creates a new inventory item
+        // Update button saves changes to the selected item
+        findViewById(R.id.addItemSubmitButton).setOnClickListener(view -> addNewItem());
+        findViewById(R.id.updateItemSubmitButton).setOnClickListener(view -> updateSelectedItem());
+
+        // +1 and -1 buttons update the quantity field before saving
+        findViewById(R.id.increaseQuantityButton).setOnClickListener(view -> adjustUpdateQuantity(1));
+        findViewById(R.id.decreaseQuantityButton).setOnClickListener(view -> adjustUpdateQuantity(-1));
+
+        // delete button removes the selected item by item ID
+        findViewById(R.id.deleteItemButton).setOnClickListener(view -> deleteSelectedItem());
 
         // gridview item selection
-        // the user selects an inventory item, and name and quantity autofill
+        // stores selected item ID and autofills update fields
         gridView.setOnItemClickListener((parent, view, position, id) -> {
             InventoryItem selectedItem = displayedItems.get(position);
 
-            itemName.setText(selectedItem.getItemName());
-            itemQuantity.setText(String.valueOf(selectedItem.getQuantity()));
+            // selectedItemId is used so updates and deletes happen by primary key
+            selectedItemId = selectedItem.getItemId();
 
-            dataEntryForm.setVisibility(View.VISIBLE);
+            updateItemName.setText(selectedItem.getItemName());
+            updateQuantity.setText(String.valueOf(selectedItem.getQuantity()));
+            updateCategory.setText(selectedItem.getCategory());
+            updateLowStockLimit.setText(String.valueOf(selectedItem.getLowStockLimit()));
+
+            addItemForm.setVisibility(View.GONE);
+            updateItemForm.setVisibility(View.VISIBLE);
 
         });
 
@@ -87,15 +130,6 @@ public class MainActivity extends AppCompatActivity {
         searchField = findViewById(R.id.searchField);
         sortSpinner = findViewById(R.id.sortSpinner);
         lowStockSwitch = findViewById(R.id.lowStockSwitch);
-
-        // connects inventory management buttons to their corresponding methods
-        findViewById(R.id.increaseQuantityButton).setOnClickListener(view -> modifyQuantity(true));
-        findViewById(R.id.decreaseQuantityButton).setOnClickListener(view -> modifyQuantity(false));
-        findViewById(R.id.deleteItemButton).setOnClickListener(view -> deleteItem());
-
-        // button setup for adding new inventory items
-        addDataButton.setOnClickListener(view -> toggleFormVisibility());
-        findViewById(R.id.saveDataButton).setOnClickListener(view -> saveData());
 
         // search button runs the search algorithm
         findViewById(R.id.searchButton).setOnClickListener(view -> searchInventory());
@@ -119,10 +153,10 @@ public class MainActivity extends AppCompatActivity {
                     sortInventoryByName();
                 }
                 if (position == 1) {
-                    sortInventoryByQuantityReverse();
+                    sortInventoryByQuantity();
                 }
                 if (position == 2) {
-                    sortInventoryByQuantity();
+                    sortInventoryByQuantityReverse();
                 }
             }
 
@@ -181,36 +215,65 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void toggleFormVisibility() {
-        if (dataEntryForm.getVisibility() == View.GONE) {
-            dataEntryForm.setVisibility(View.VISIBLE);
+    // opens or closes the add item form
+    // closes update form so only one menu is open
+    private void toggleAddItemForm() {
+        if (addItemForm.getVisibility() == View.VISIBLE) {
+            addItemForm.setVisibility(View.GONE);
         } else {
-            dataEntryForm.setVisibility(View.GONE);
+            updateItemForm.setVisibility(View.GONE);
+            addItemForm.setVisibility(View.VISIBLE);
         }
     }
 
-    // saves new inventory item after validating user input
-    private void saveData() {
-        String name = itemName.getText().toString().trim();
-        String quantityStr = itemQuantity.getText().toString().trim();
+    // opens or closes the update item form
+    // requires an item to be selected before updating
+    private void toggleUpdateItemForm() {
+        if (updateItemForm.getVisibility() == View.VISIBLE) {
+            updateItemForm.setVisibility(View.GONE);
+        } else {
+            addItemForm.setVisibility(View.GONE);
 
-        // basic validation to ensure all fields are occupied
-        if (name.isEmpty() || quantityStr.isEmpty()) {
+            if (selectedItemId == -1) {
+                Toast.makeText(this, "Please select an item to update", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            updateItemForm.setVisibility(View.VISIBLE);
+        }
+    }
+
+    // adds a new inventory item after validating all input fields
+    private void addNewItem() {
+        String name = addItemName.getText().toString().trim();
+        String quantityStr = addQuantity.getText().toString().trim();
+        String category = addCategory.getText().toString().trim();
+        String lowStockStr = addLowStockLimit.getText().toString().trim();
+
+        // validates that all new item fields are filled
+        if (name.isEmpty() || quantityStr.isEmpty() || category.isEmpty() || lowStockStr.isEmpty()) {
             Toast.makeText(this, "Please enter all fields", Toast.LENGTH_SHORT).show();
             return;
         }
 
         try {
             int quantity = Integer.parseInt(quantityStr);
+            int lowStockLimit = Integer.parseInt(lowStockStr);
 
-            // prevents negative quantities from being saved
-            if (quantity < 0) {
-                Toast.makeText(this, "Quantity cannot be negative", Toast.LENGTH_SHORT).show();
+            // prevents negative quantity or low-stock values
+            if (quantity < 0 || lowStockLimit < 0) {
+                Toast.makeText(this, "Quantity and low stock limit cannot be negative", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            // inventory insert is handled by DatabaseHelper
-            boolean itemAdded = databaseHelper.addInventoryItem(name, quantity);
+            // checks for duplicate item names before inserting
+            if (databaseHelper.itemNameExists(name)) {
+                Toast.makeText(this, "Item name already exists", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // adds item using expanded database fields
+            boolean itemAdded = databaseHelper.addInventoryItem(name, quantity, category, lowStockLimit);
 
             if (!itemAdded) {
                 Toast.makeText(this, "Item could not be added", Toast.LENGTH_SHORT).show();
@@ -218,9 +281,13 @@ public class MainActivity extends AppCompatActivity {
             }
 
             Toast.makeText(this, "Item added to inventory!", Toast.LENGTH_SHORT).show();
-            itemName.setText("");
-            itemQuantity.setText("");
-            dataEntryForm.setVisibility(View.GONE);
+
+            addItemName.setText("");
+            addQuantity.setText("");
+            addCategory.setText("");
+            addLowStockLimit.setText("");
+
+            addItemForm.setVisibility(View.GONE);
 
             // Sends SMS notification after an item is added
             // Future improvement: only send for low stock
@@ -230,59 +297,119 @@ public class MainActivity extends AppCompatActivity {
             loadInventory();
 
         } catch (NumberFormatException e) {
-            Toast.makeText(this, "Please enter a valid number for quantity", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Please enter valid numbers", Toast.LENGTH_SHORT).show();
         }
     }
 
-    // updates existing inventory item quantity
-    // boolean value determines whether quantity is decreased or increased
-    private void modifyQuantity(boolean increase) {
-        String name = itemName.getText().toString().trim();
-
-        if (name.isEmpty()) {
-            Toast.makeText(this, "Please enter an item name", Toast.LENGTH_SHORT).show();
+    // updates the selected inventory item by item ID
+    private void updateSelectedItem() {
+        if (selectedItemId == -1) {
+            Toast.makeText(this, "Please select an item to update", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // retrieves current quantity from DatabaseHelper
-        Integer quantity = databaseHelper.getItemQuantity(name);
+        String name = updateItemName.getText().toString().trim();
+        String quantityStr = updateQuantity.getText().toString().trim();
+        String category = updateCategory.getText().toString().trim();
+        String lowStockStr = updateLowStockLimit.getText().toString().trim();
 
-        if (quantity != null) {
-            // increases / decreases quantity based on boolean
-            // math.max keeps quantity from dropping below 0
-            int updatedQuantity = increase ? quantity + 1 : Math.max(0, quantity - 1);
+        // validates all update fields before saving changes
+        if (name.isEmpty() || quantityStr.isEmpty() || category.isEmpty() || lowStockStr.isEmpty()) {
+            Toast.makeText(this, "Please enter all fields", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
-            // quantity update is handled by DatabaseHelper
-            boolean quantityUpdated = databaseHelper.updateInventoryQuantity(name, updatedQuantity);
+        try {
+            int quantity = Integer.parseInt(quantityStr);
+            int lowStockLimit = Integer.parseInt(lowStockStr);
 
-            if (quantityUpdated) {
-                loadInventory();
-            } else {
-                Toast.makeText(this, "Quantity could not be updated", Toast.LENGTH_SHORT).show();
+            // prevents negative quantity or low-stock values
+            if (quantity < 0 || lowStockLimit < 0) {
+                Toast.makeText(this, "Quantity and low stock limit cannot be negative", Toast.LENGTH_SHORT).show();
+                return;
             }
 
-        } else {
-            Toast.makeText(this, "Item not found", Toast.LENGTH_SHORT).show();
+            // updates selected item by primary key instead of item name
+            boolean itemUpdated = databaseHelper.updateInventoryItem(
+                    selectedItemId,
+                    name,
+                    quantity,
+                    category,
+                    lowStockLimit
+            );
+
+            if (itemUpdated) {
+                Toast.makeText(this, "Item updated", Toast.LENGTH_SHORT).show();
+
+                updateItemForm.setVisibility(View.GONE);
+                selectedItemId = -1;
+
+                loadInventory();
+            } else {
+                Toast.makeText(this, "Item could not be updated. Name may already exist.", Toast.LENGTH_SHORT).show();
+            }
+
+        } catch (NumberFormatException e) {
+            Toast.makeText(this, "Please enter valid numbers", Toast.LENGTH_SHORT).show();
         }
     }
 
-    // deletes inventory item using DatabaseHelper
-    private void deleteItem() {
-        String name = itemName.getText().toString().trim();
+    // adjusts the update quantity field and saves the change to the database
+// quantity changes now use item ID instead of item name
+private void adjustUpdateQuantity(int change) {
+    if (selectedItemId == -1) {
+        Toast.makeText(this, "Please select an item first", Toast.LENGTH_SHORT).show();
+        return;
+    }
 
-        if (name.isEmpty()) {
-            Toast.makeText(this, "Please enter an item name", Toast.LENGTH_SHORT).show();
+    String quantityStr = updateQuantity.getText().toString().trim();
+
+    int quantity = 0;
+
+    if (!quantityStr.isEmpty()) {
+        try {
+            quantity = Integer.parseInt(quantityStr);
+        } catch (NumberFormatException e) {
+            Toast.makeText(this, "Invalid quantity", Toast.LENGTH_SHORT).show();
+            return;
+        }
+    }
+
+    quantity += change;
+
+    if (quantity < 0) {
+        quantity = 0;
+    }
+
+    updateQuantity.setText(String.valueOf(quantity));
+
+    boolean quantityUpdated = databaseHelper.updateInventoryQuantityById(selectedItemId, quantity);
+
+    if (quantityUpdated) {
+        loadInventory();
+    } else {
+        Toast.makeText(this, "Quantity could not be updated", Toast.LENGTH_SHORT).show();
+    }
+}
+
+    // deletes the selected inventory item by item ID
+    private void deleteSelectedItem() {
+        if (selectedItemId == -1) {
+            Toast.makeText(this, "Please select an item to delete", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // delete handled by DatabaseHelper
-        boolean itemDeleted = databaseHelper.deleteInventoryItem(name);
+        boolean itemDeleted = databaseHelper.deleteInventoryItemById(selectedItemId);
 
         if (itemDeleted) {
-            Toast.makeText(this, "Item deleted!", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Item deleted", Toast.LENGTH_SHORT).show();
+
+            updateItemForm.setVisibility(View.GONE);
+            selectedItemId = -1;
+
             loadInventory();
         } else {
-            Toast.makeText(this, "Item not found", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Item could not be deleted", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -311,6 +438,7 @@ public class MainActivity extends AppCompatActivity {
 
     // searching
     // loops through inventory list for matching item name
+    // now searches in both inventory item names and categories
     private void searchInventory() {
         String searchText = searchField.getText().toString().trim().toLowerCase();
 
@@ -320,18 +448,19 @@ public class MainActivity extends AppCompatActivity {
             displayedItems.addAll(inventoryItems);
         } else {
             for (InventoryItem item : inventoryItems) {
-                if (item.getItemName().toLowerCase().contains(searchText)) {
+                if (item.getItemName().toLowerCase().contains(searchText) 
+                    || item.getCategory().toLowerCase().contains(searchText)){
                     displayedItems.add(item);
                 }
             }
         }
 
-        // If low stock switch is on - only display low stock items
+        // uses each item's stored lowStockLimit when filtering search results
         if (lowStockSwitch.isChecked()) {
             ArrayList<InventoryItem> lowStockSearchResults = new ArrayList<>();
 
             for (InventoryItem item : displayedItems) {
-                if (item.getQuantity() <= LOW_STOCK_LIMIT) {
+                if (item.getQuantity() <= item.getLowStockLimit()) {
                     lowStockSearchResults.add(item);
                 }
             }
@@ -372,12 +501,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // low stock filter
-    // loops through inventory and only displays items at or below low stock limit
+    // uses each item's stored lowStockLimit instead of a hardcoded value
     private void filterLowStock() {
         displayedItems = new ArrayList<>();
 
         for (InventoryItem item : inventoryItems) {
-            if (item.getQuantity() <= LOW_STOCK_LIMIT) {
+            if (item.getQuantity() <= item.getLowStockLimit()) {
                 displayedItems.add(item);
             }
         }
