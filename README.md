@@ -39,7 +39,7 @@ The main changes include:
 * `DatabaseHelper.java`
 * `InventoryItem.java`
 * `activity_data_display.xml`
-* 'grid_item.xml'
+* `grid_item.xml`
 
 ## Skills Demonstrated
 
